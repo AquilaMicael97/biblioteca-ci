@@ -22,13 +22,26 @@ jobs:
       - name: Run tests
         run: |
           pytest --maxfail=1 --disable-warnings -q
-    imagem:
-      runs-on: ubuntu-latest
-
-      steps:
-        - uses: actions/checkout@v3
-        - run: docker build -t biblioteca-ci:latest .
-        - run: docker run -d --name biblioteca-ci -p 8000:8000 biblioteca-ci:latest
-        - run: sleep 10
-        - run: curl -fsS http://localhost:8000/saude; then exit 0
-
+  imagem:
+    needs: teste-unitarios
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker build -t biblioteca-ci:latest .
+      - run: docker run -d --name biblioteca-ci -p 8000:8000 biblioteca-ci:latest
+      - run: sleep 10
+      - run: curl -fsS http://localhost:8000/saude
+  publicar:
+    needs: imagem
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGEM: ghcr.io/aquilamicael97/biblioteca-ci
+    steps:
+      - uses: actions/checkout@v3
+      - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - run: docker build -t "$IMAGEM:latest" -t "$IMAGEM:$GITHUB_SHA" .
+      - run: docker push --all-tags "$IMAGEM"
