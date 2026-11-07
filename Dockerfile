@@ -1,4 +1,5 @@
 FROM python:3.13-slim
+LABEL org.opencontainers.image.source=https://github.com/AquilaMicael97/biblioteca-ci
 
 WORKDIR /app
 COPY requirements.txt .
